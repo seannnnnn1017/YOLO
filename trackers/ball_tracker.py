@@ -2,12 +2,30 @@ from ultralytics import YOLO
 import cv2
 import torch
 import pickle
+import pandas as pd
+
 
 class BallTracker:
     def __init__(self,model_path):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model =YOLO(model_path).to(device)
     
+    def interpolate_ball_positions(self, ball_positions): 
+        # ball_positions = [{}, {1: [892.9063720703125, 616.3403930664062, 911.8057861328125, 635.3505859375]}, {}, {}, {}] # example ball positions
+                               #{id: [x1,y1,x2,y2]}
+
+        ball_positions =[x.get(1,[]) for x in ball_positions]
+        # covert the list of lists to a dataframe
+        df_ball_positions =pd.DataFrame(ball_positions,columns=['x1','y1','x2','y2'])
+
+        # interpolate the missing values in the dataframe
+        df_ball_positions = df_ball_positions.interpolate(method='linear', axis=0)
+        df_ball_positions = df_ball_positions.bfill() # backfill the missing values
+
+        ball_positions =[{1:x} for x in df_ball_positions.to_numpy().tolist()]
+        return ball_positions
+
+
     def detect_frames(self,frames ,read_from_stub=False, stub_path=None): # frames is a list of frames
         ball_detections = [] 
 
@@ -38,9 +56,9 @@ class BallTracker:
 
         return ball_dict
 
-    def draw_bboxes(self,video_frames,player_detections):
+    def draw_bboxes(self,video_frames,ball_detections):
         output_video_frames = []
-        for frame, ball_dict in zip(video_frames,player_detections):
+        for frame, ball_dict in zip(video_frames,ball_detections):
             # draw bboxes on the frame
             for track_id, bbox in ball_dict.items():
                 x1, y1, x2, y2 = bbox

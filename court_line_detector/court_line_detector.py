@@ -31,6 +31,7 @@ class CourtLineDetector:
         return keypoints
     
     def draw_keypoints(self, image, keypoints):
+
         # Plot keypoints on the image
         for i in range(0,len(keypoints),2):
             x=int(keypoints[i])

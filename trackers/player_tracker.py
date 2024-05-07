@@ -2,10 +2,44 @@ from ultralytics import YOLO
 import cv2
 import torch
 import pickle
+import sys
+sys.path.append('../')
+from utils import measure_distance, get_center_of_bbox
 class PlayerTracker:
     def __init__(self,model_path):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model =YOLO(model_path).to(device)
+
+    def choose_and_filter_players(self, court_keypoints, player_detections):
+        print(type(court_keypoints))
+        player_detections_first_frame = player_detections[0]
+        chosen_player = self.choose_players(court_keypoints, player_detections_first_frame)
+        filtered_player_detections = []
+        for player_dict in player_detections:
+            filtered_player_dict = {track_id: bbox for track_id, bbox in player_dict.items() if track_id in chosen_player}
+            filtered_player_detections.append(filtered_player_dict)
+        return filtered_player_detections
+
+    def choose_players(self, court_keypoints, player_dict):
+        distances = []
+        for track_id, bbox in player_dict.items():
+            player_center = get_center_of_bbox(bbox)
+
+            min_distance = float('inf')
+            for i in range(0,len(court_keypoints),2):
+                court_keypoint = (court_keypoints[i], court_keypoints[i+1])
+                distance = measure_distance(player_center, court_keypoint)
+                if distance < min_distance:
+                    min_distance = distance
+            distances.append((track_id, min_distance))
+        print(distances)
+        # sorrt the distances in ascending order
+        distances.sort(key = lambda x: x[1])
+        # Choose the first 2 tracks
+        chosen_players = [distances[0][0], distances[1][0]]
+        return chosen_players
+
+ 
     
     def detect_frames(self,frames ,read_from_stub=False, stub_path=None): # frames is a list of frames
         player_detections = [] 
@@ -27,13 +61,13 @@ class PlayerTracker:
 
 
     def detect_frame(self,frame): #
-        results = self.model.track(frame, persist=True)[0] # return a list of detections with track id and bbox coordinates     #persist=True ªí¥Ü°l?«H®§·|¦b¦h­Ó´V¤§¶¡«ùÄò«O¦s
+        results = self.model.track(frame, persist=True)[0] # return a list of detections with track id and bbox coordinates     #persist=True è¡¨ç¤ºè¿½?ä¿¡æ¯æœƒåœ¨å¤šå€‹å¹€ä¹‹é–“æŒçºŒä¿å­˜
         id_name_dict = results.names # a dictionary of id and name of objects in the model  
 
         player_dict ={}
         for box in results.boxes:
             track_id = int(box.id.tolist()[0])
-            result =box.xyxy.tolist()[0] #Àò¨úÃä¬É®Øªº®y¼Ð¡A³q±`¬° [x_min, y_min, x_max, y_max]
+            result =box.xyxy.tolist()[0] #ç²å–é‚Šç•Œæ¡†çš„åº§æ¨™ï¼Œé€šå¸¸ç‚º [x_min, y_min, x_max, y_max]
             object_cls_id =box.cls.tolist()[0]
             object_cls_name = id_name_dict[object_cls_id]
             if object_cls_name == 'person':
