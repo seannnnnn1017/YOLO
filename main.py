@@ -18,10 +18,10 @@ def main():
                                                      read_from_stub=True,
                                                      stub_path='tracker_stubs/player_detection.pkl')
     
-    ball_detectains = ball_tracker.detect_frames(video_frames,
+    ball_detection = ball_tracker.detect_frames(video_frames,
                                                      read_from_stub=True,
                                                      stub_path='tracker_stubs/ball_detection.pkl')
-    ball_detectains = ball_tracker.interpolate_ball_positions(ball_detectains)
+    ball_detection = ball_tracker.interpolate_ball_positions(ball_detection)
 
 
 
@@ -37,10 +37,14 @@ def main():
     # Minicourt
     Mini_court  = MiniCourt(video_frames[0])
 
+    # Detect ball shots
+    ball_shot_frames = ball_tracker.get_ball_shot_frames(ball_detection)
+    print(f'Ball shot frames: {ball_shot_frames}')
+
     # Draw output
     ## Draw player bounding boxes
     output_video_frames = player_tracker.draw_bboxes(video_frames, player_detectains)
-    output_video_frames = ball_tracker.draw_bboxes(output_video_frames, ball_detectains)
+    output_video_frames = ball_tracker.draw_bboxes(output_video_frames, ball_detection)
 
     ## Draw court keypoints
     output_video_frames = court_line_detector.draw_keypoints_on_video(output_video_frames, court_keypoints)
