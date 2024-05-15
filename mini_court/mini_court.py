@@ -159,7 +159,7 @@ class MiniCourt:
                                    closest_key_point_index,
                                    player_height_in_pixel,
                                    player_height_in_meters):
-        print(object_position,closest_key_point,closest_key_point_index,player_height_in_pixel,player_height_in_meters)
+        # Get distance from object to closest keypoint
         distance_from_keypoint_x_pixels, distance_from_keypoint_y_pixels = measure_xy_distance(object_position, closest_key_point)
         
         # Conver pixel distance to meters
@@ -176,7 +176,7 @@ class MiniCourt:
         closest_mini_court_keypoint = (self.drawing_key_points[closest_key_point_index*2],
                                        self.drawing_key_points[closest_key_point_index*2+1])
         mini_court_player_position = (closest_mini_court_keypoint[0] + mini_court_x_distance_pixels,
-                                      closest_mini_court_keypoint[1] - mini_court_y_distance_pixels)
+                                      closest_mini_court_keypoint[1] + mini_court_y_distance_pixels)
         return mini_court_player_position
     
     def convert_bounding_boxes_to_mini_court_coordinates(self,
@@ -211,6 +211,7 @@ class MiniCourt:
                 # Get Player height in pixel
                 frame_index_min = max(0, frame_num - 20)
                 frame_index_max = min(len(player_boxes)-1, frame_num + 50)
+        
                 bboxes_height_in_pixel = [get_height_of_bbox(player_boxes[i][player_id]) for i in range(frame_index_min, frame_index_max)]
                 max_player_height_in_pixel = max(bboxes_height_in_pixel)
 
